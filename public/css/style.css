@@ -1,0 +1,75 @@
+body{
+	width: 100%;
+	margin: 0;
+	background-color: #000;
+	max-height: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+html {
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+}
+
+ul {
+  list-style-type: none;
+}
+
+.users{
+	float : right;
+	margin-right: 1.5em;
+	color: white;
+	width: 15%;
+}
+html, input {
+  font-family: 
+  	monospace,
+	Arial
+}
+
+.messages {
+	float: left;
+	width: 80%;
+	margin: 3;
+	padding: 0;
+	color: white;
+	overflow: auto;
+	max-height: 94vh;
+}
+.message_form{
+  
+  bottom: 0;
+  height: 5vh;
+  left: 0;
+  outline: none;
+  padding-left: 10px;
+  position: absolute;
+  right: 0;
+  width: 100%;
+}
+
+.messageInput{
+ 
+  bottom: 0;
+  left: 0;
+	height: 100%;
+  outline: none;
+  padding-left: 10px;
+  position: absolute;
+  right: 0;
+  width: 100%;
+  color: black;
+}
+
+.change_name_form{
+	padding: 1em;
+	text-align: center;
+	position: absolute;
+	margin-top: -100px;
+	height: 100px;
+	top: 25%;
+	width: 100%;
+	font-size: 200%;
+	color: white;
+}
