@@ -75,14 +75,6 @@ function usersByChannel(io, channelName) {
   return users;
 };
 
-function InitRooms(socket){
-  for (var room in channels.get())
-  {
-    socket.rooms.push({room : room});
-  }
-}
-
-
 var socketIo = module.exports = {};
 
 socketIo.events = function (socket, io) {
@@ -147,6 +139,7 @@ socketIo.events = function (socket, io) {
     socket.leave(oldRoom);
     socket.room = newRoom;
     socket.join(newRoom);
+    
     socket.broadcast.to(oldRoom).emit('update:users', {
       users: usersByChannel(io, oldRoom)
     });
@@ -154,8 +147,6 @@ socketIo.events = function (socket, io) {
     io.sockets.in(newRoom).emit('update:users', {
       users: usersByChannel(io, newRoom)
     });
-
-    // update socket session room title
    
     socket.broadcast.to(newRoom).emit('send:message', {
       user: '',
