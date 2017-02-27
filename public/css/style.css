@@ -14,6 +14,21 @@ html {
 
 ul {
   list-style-type: none;
+	margin: 0;
+  padding: 0;
+}
+
+.horizontal-list {
+    display: inline;
+}
+
+.floating{
+	float: left;
+	padding: 10px 10px;
+}
+
+li a:hover {
+    background-color: #696969;
 }
 
 .users{
@@ -22,6 +37,13 @@ ul {
 	color: white;
 	width: 15%;
 }
+.channels{
+float : left;
+	margin-right: 1.5em;
+	color: white;
+	width: 75%;
+}
+
 html, input {
   font-family: 
   	monospace,
@@ -35,7 +57,7 @@ html, input {
 	padding: 0;
 	color: white;
 	overflow: auto;
-	max-height: 94vh;
+	max-height: 90vh;
 }
 .message_form{
   

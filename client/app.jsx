@@ -8,13 +8,13 @@ var UsersList = React.createClass({
 	render() {
 		return (
 			<div className='users'>
-				<h4> Online Users:</h4>
+				<h4> Users:</h4>
 				<ul>
 					{
 						this.props.users.map((user, i) => {
 							return (
 								<li key={i}>
-									{user}
+									{user} 								
 								</li>
 							);
 						})
@@ -24,6 +24,40 @@ var UsersList = React.createClass({
 		);
 	}
 });
+
+
+var ChannelList = React.createClass({
+
+	onClick(channel) {
+		console.log('Clicked ' + channel);
+		console.log('Currently in ' + this.props.currentChannel);
+		if (channel !== this.props.currentChannel){
+		this.props.onChannelClicked(channel);
+		}	
+	},
+
+	render() {
+		return (
+			<div className='channels'>
+				<ul className='horizontal-list'>
+					{
+						this.props.channels.map((channel, i) => {
+							return (
+								<li className='floating' key={i}>
+									<a onClick={() => this.onClick(channel)} style={{cursor: 'pointer'}}>							
+									{channel} 
+									</a>
+								</li>
+							);
+						})
+					}
+				</ul>				
+			</div>
+		);
+	}
+});
+
+
 
 var Message = React.createClass({
 	render() {
@@ -139,7 +173,7 @@ var ChangeNameForm = React.createClass({
 var ChatApp = React.createClass({
 
 	getInitialState() {
-		return {users: [], messages:[], text: '', showChat: false};
+		return {users: [], messages:[], text: '', channel: '', showChat: false, channels:[]};
 	},
 
 	componentDidMount() {
@@ -147,12 +181,19 @@ var ChatApp = React.createClass({
 		socket.on('send:message', this._messageRecieve);
 		socket.on('user:join', this._userJoined);
 		socket.on('user:left', this._userLeft);
+		socket.on('update:users', this._updateUsers);
 		socket.on('change:name', this._userChangedName);
 	},
 
 	_initialize(data) {
-		var {users, name} = data;
-		this.setState({users, user: name});
+		var {users, name, channels, channel} = data;
+		var {messages} = this.state;
+		messages.push({
+			user: '',
+			text: 'You are now talking in ' + channel
+		});
+		this.setState({users, user: name, channels, channel, messages});
+		console.log(users);
 	},
 
 	_messageRecieve(message) {
@@ -184,6 +225,13 @@ var ChatApp = React.createClass({
 		this.setState({users, messages});
 	},
 
+
+	_updateUsers(data) {
+		console.log(data);
+		var {users} = data;
+		this.setState({users});
+	},
+
 	_userChangedName(data) {
 		var {oldName, newName} = data;
 		var {users, messages} = this.state;
@@ -197,11 +245,26 @@ var ChatApp = React.createClass({
 	},
 
 	handleMessageSubmit(message) {
-		var {messages} = this.state;
-		messages.push(message);
-		this.setState({messages});
-		socket.emit('send:message', message);
+		if (message.text){
+			var {messages} = this.state;
+			messages.push(message);
+			this.setState({messages});
+			socket.emit('send:message', message);
+		}
+	},
 
+	onChannelClicked(newChannel) {
+		console.log(newChannel);
+		var {channel, messages} = this.state;
+		channel = newChannel;
+		messages = [];
+		messages.push({
+			user: '',
+			text: 'You are now talking in ' + newChannel
+		});
+		console.log(messages);
+		this.setState({messages, channel});
+		socket.emit('switchRoom', newChannel);
 	},
 
 	handleChangeName(newName) {
@@ -222,6 +285,12 @@ var ChatApp = React.createClass({
 			<div> { this.state.showChat ?
 				 <UsersList
 					users={this.state.users} 
+				/> : null}
+				{ this.state.showChat ?
+				 <ChannelList
+					channels={this.state.channels}
+					currentChannel={this.state.channel}
+					onChannelClicked={this.onChannelClicked} 
 				/> : null}
 				{ this.state.showChat ?<MessageList
 					messages={this.state.messages}

@@ -13,9 +13,9 @@ var UsersList = React.createClass({
 			'div',
 			{ className: 'users' },
 			React.createElement(
-				'h3',
+				'h4',
 				null,
-				' Online Users '
+				' Users:'
 			),
 			React.createElement(
 				'ul',
@@ -23,8 +23,46 @@ var UsersList = React.createClass({
 				this.props.users.map(function (user, i) {
 					return React.createElement(
 						'li',
-						{ key: i }, 
+						{ key: i },
 						user
+					);
+				})
+			)
+		);
+	}
+});
+
+var ChannelList = React.createClass({
+	displayName: 'ChannelList',
+
+	onClick: function onClick(channel) {
+		console.log('Clicked ' + channel);
+		console.log('Currently in ' + this.props.currentChannel);
+		if (channel !== this.props.currentChannel) {
+			this.props.onChannelClicked(channel);
+		}
+	},
+
+	render: function render() {
+		var _this = this;
+
+		return React.createElement(
+			'div',
+			{ className: 'channels' },
+			React.createElement(
+				'ul',
+				{ className: 'horizontal-list' },
+				this.props.channels.map(function (channel, i) {
+					return React.createElement(
+						'li',
+						{ className: 'floating', key: i },
+						React.createElement(
+							'a',
+							{ onClick: function () {
+									return _this.onClick(channel);
+								}, style: { cursor: 'pointer' } },
+							channel
+						)
 					);
 				})
 			)
@@ -165,7 +203,7 @@ var ChatApp = React.createClass({
 	displayName: 'ChatApp',
 
 	getInitialState: function getInitialState() {
-		return { users: [], messages: [], text: '', showChat: false };
+		return { users: [], messages: [], text: '', channel: '', showChat: false, channels: [] };
 	},
 
 	componentDidMount: function componentDidMount() {
@@ -173,14 +211,23 @@ var ChatApp = React.createClass({
 		socket.on('send:message', this._messageRecieve);
 		socket.on('user:join', this._userJoined);
 		socket.on('user:left', this._userLeft);
+		socket.on('update:users', this._updateUsers);
 		socket.on('change:name', this._userChangedName);
 	},
 
 	_initialize: function _initialize(data) {
 		var users = data.users;
 		var name = data.name;
+		var channels = data.channels;
+		var channel = data.channel;
+		var messages = this.state.messages;
 
-		this.setState({ users: users, user: name });
+		messages.push({
+			user: '',
+			text: 'You are now talking in ' + channel
+		});
+		this.setState({ users: users, user: name, channels: channels, channel: channel, messages: messages });
+		console.log(users);
 	},
 
 	_messageRecieve: function _messageRecieve(message) {
@@ -219,6 +266,13 @@ var ChatApp = React.createClass({
 		this.setState({ users: users, messages: messages });
 	},
 
+	_updateUsers: function _updateUsers(data) {
+		console.log(data);
+		var users = data.users;
+
+		this.setState({ users: users });
+	},
+
 	_userChangedName: function _userChangedName(data) {
 		var oldName = data.oldName;
 		var newName = data.newName;
@@ -236,26 +290,45 @@ var ChatApp = React.createClass({
 	},
 
 	handleMessageSubmit: function handleMessageSubmit(message) {
-		var messages = this.state.messages;
-		messages.push(message);
-		this.setState({ messages: messages });
-		socket.emit('send:message', message);
-		console.log("Message sent:" + message);
+		if (message.text) {
+			var messages = this.state.messages;
+
+			messages.push(message);
+			this.setState({ messages: messages });
+			socket.emit('send:message', message);
+		}
+	},
+
+	onChannelClicked: function onChannelClicked(newChannel) {
+		console.log(newChannel);
+		var _state4 = this.state;
+		var channel = _state4.channel;
+		var messages = _state4.messages;
+
+		channel = newChannel;
+		messages = [];
+		messages.push({
+			user: '',
+			text: 'You are now talking in ' + newChannel
+		});
+		console.log(messages);
+		this.setState({ messages: messages, channel: channel });
+		socket.emit('switchRoom', newChannel);
 	},
 
 	handleChangeName: function handleChangeName(newName) {
-		var _this = this;
+		var _this2 = this;
 
 		var oldName = this.state.user;
 		socket.emit('change:name', { name: newName }, function (result) {
 			if (!result) {
 				return alert('There was an error changing your name');
 			}
-			var users = _this.state.users;
+			var users = _this2.state.users;
 
 			var index = users.indexOf(oldName);
 			users.splice(index, 1, newName);
-			_this.setState({ users: users, user: newName, showChat: true });
+			_this2.setState({ users: users, user: newName, showChat: true });
 		});
 	},
 
@@ -266,6 +339,11 @@ var ChatApp = React.createClass({
 			' ',
 			this.state.showChat ? React.createElement(UsersList, {
 				users: this.state.users
+			}) : null,
+			this.state.showChat ? React.createElement(ChannelList, {
+				channels: this.state.channels,
+				currentChannel: this.state.channel,
+				onChannelClicked: this.onChannelClicked
 			}) : null,
 			this.state.showChat ? React.createElement(MessageList, {
 				messages: this.state.messages
