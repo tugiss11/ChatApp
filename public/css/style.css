@@ -57,6 +57,7 @@ html, input {
 	padding: 0;
 	color: white;
 	overflow: auto;
+	overflow-wrap: break-word;
 	max-height: 90vh;
 }
 .message_form{
