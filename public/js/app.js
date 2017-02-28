@@ -99,6 +99,17 @@ var Message = React.createClass({
 var MessageList = React.createClass({
 	displayName: 'MessageList',
 
+	scrollToBottom: function scrollToBottom() {
+		var node = this.getDOMNode();
+		var scrollHeight = node.scrollHeight;
+		var height = node.clientHeight;
+		var maxScrollTop = scrollHeight - height;
+		node.scrollTop = maxScrollTop > 0 ? maxScrollTop : 0;
+	},
+
+	componentDidUpdate: function componentDidUpdate() {
+		this.scrollToBottom();
+	},
 	render: function render() {
 		return React.createElement(
 			'div',
@@ -135,12 +146,14 @@ var MessageForm = React.createClass({
 
 	handleSubmit: function handleSubmit(e) {
 		e.preventDefault();
-		var message = {
-			user: this.getFormattedTimestamp() + " <" + this.props.user + "> ",
-			text: this.state.text
-		};
-		this.props.onMessageSubmit(message);
-		this.setState({ text: '' });
+		if (this.state.text) {
+			var message = {
+				user: this.getFormattedTimestamp() + " <" + this.props.user + "> ",
+				text: this.state.text
+			};
+			this.props.onMessageSubmit(message);
+			this.setState({ text: '' });
+		}
 	},
 
 	changeHandler: function changeHandler(e) {
@@ -339,18 +352,16 @@ var ChatApp = React.createClass({
 	},
 
 	handleMessageSubmit: function handleMessageSubmit(message) {
-		if (message.text) {
-			var _state4 = this.state;
-			var messages = _state4.messages;
-			var user = _state4.user;
-			var channel = _state4.channel;
+		var _state4 = this.state;
+		var messages = _state4.messages;
+		var user = _state4.user;
+		var channel = _state4.channel;
 
-			messages.push(message);
-			this.setState({ messages: messages });
-			socket.emit('stop:typing', { name: user, channel: channel });
-			typing = false;
-			socket.emit('send:message', message);
-		}
+		messages.push(message);
+		this.setState({ messages: messages });
+		socket.emit('stop:typing', { name: user, channel: channel });
+		typing = false;
+		socket.emit('send:message', message);
 	},
 
 	onChannelClicked: function onChannelClicked(newChannel) {
