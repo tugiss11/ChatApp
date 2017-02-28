@@ -154,6 +154,20 @@ socketIo.events = function (socket, io) {
     });
   });
 
+   socket.on('typing', function (data) {
+    socket.broadcast.to(data.channel).emit('send:message', {
+      user: data.name,
+      text: ' is typing...'
+    });
+  });
+
+  socket.on('stop:typing', function (data) {
+    socket.broadcast.to(data.channel).emit('remove:message', {
+      user: data.name,
+      text: ' is typing...'
+    });
+  });
+
   // clean up when a user leaves, and broadcast it to other users
   socket.on('disconnect', function () {
     socket.broadcast.emit('user:left', {

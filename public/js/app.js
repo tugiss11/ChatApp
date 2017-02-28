@@ -5,6 +5,10 @@ var React = require('react');
 
 var socket = io.connect();
 
+var typingLength = 800;
+var lastTypingTime;
+var typing = false;
+
 var UsersList = React.createClass({
 	displayName: 'UsersList',
 
@@ -140,6 +144,9 @@ var MessageForm = React.createClass({
 	},
 
 	changeHandler: function changeHandler(e) {
+		if (e.target.value) {
+			this.props.onUpdateTyping();
+		}
 		this.setState({ text: e.target.value });
 	},
 
@@ -203,12 +210,21 @@ var ChatApp = React.createClass({
 	displayName: 'ChatApp',
 
 	getInitialState: function getInitialState() {
-		return { users: [], messages: [], text: '', channel: '', showChat: false, channels: [] };
+		return {
+			users: [],
+			messages: [],
+			text: '',
+			channel: '',
+			showChat: false,
+			channels: [],
+			typingLength: 500
+		};
 	},
 
 	componentDidMount: function componentDidMount() {
 		socket.on('init', this._initialize);
 		socket.on('send:message', this._messageRecieve);
+		socket.on('remove:message', this._messageRemove);
 		socket.on('user:join', this._userJoined);
 		socket.on('user:left', this._userLeft);
 		socket.on('update:users', this._updateUsers);
@@ -230,11 +246,44 @@ var ChatApp = React.createClass({
 		console.log(users);
 	},
 
+	handleUpdateTyping: function handleUpdateTyping() {
+		var user = this.state.user;
+		var channel = this.state.channel;
+
+		if (!typing) {
+			typing = true;
+			socket.emit('typing', { name: user, channel: channel });
+			this.setState({ typing: typing });
+		}
+		lastTypingTime = new Date().getTime();
+
+		setTimeout(function () {
+			var typingTimer = new Date().getTime();
+			var timeDiff = typingTimer - lastTypingTime;
+			if (timeDiff >= typingLength && typing) {
+				socket.emit('stop:typing', { name: user, channel: channel });
+				typing = false;
+			}
+		}, typingLength);
+	},
+
 	_messageRecieve: function _messageRecieve(message) {
 		var messages = this.state.messages;
 
 		messages.push(message);
 		this.setState({ messages: messages });
+	},
+
+	_messageRemove: function _messageRemove(message) {
+		var messages = this.state.messages;
+
+		var index = messages.findIndex(function (m) {
+			return m.user == message.user && m.message == message.message;
+		});
+		if (index > -1) {
+			messages.splice(index, 1);
+			this.setState({ messages: messages });
+		}
 	},
 
 	_userJoined: function _userJoined(data) {
@@ -291,19 +340,24 @@ var ChatApp = React.createClass({
 
 	handleMessageSubmit: function handleMessageSubmit(message) {
 		if (message.text) {
-			var messages = this.state.messages;
+			var _state4 = this.state;
+			var messages = _state4.messages;
+			var user = _state4.user;
+			var channel = _state4.channel;
 
 			messages.push(message);
 			this.setState({ messages: messages });
+			socket.emit('stop:typing', { name: user, channel: channel });
+			typing = false;
 			socket.emit('send:message', message);
 		}
 	},
 
 	onChannelClicked: function onChannelClicked(newChannel) {
 		console.log(newChannel);
-		var _state4 = this.state;
-		var channel = _state4.channel;
-		var messages = _state4.messages;
+		var _state5 = this.state;
+		var channel = _state5.channel;
+		var messages = _state5.messages;
 
 		channel = newChannel;
 		messages = [];
@@ -350,6 +404,7 @@ var ChatApp = React.createClass({
 			}) : null,
 			this.state.showChat ? React.createElement(MessageForm, {
 				onMessageSubmit: this.handleMessageSubmit,
+				onUpdateTyping: this.handleUpdateTyping,
 				user: this.state.user
 			}) : null,
 			' ',
