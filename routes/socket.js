@@ -121,7 +121,7 @@ socketIo.events = function (socket, io) {
 
   // validate a user's name change, and broadcast it on success
   socket.on('change:name', function (data, fn) {
-    if (userNames.claim(data.name)) {
+    if (userNames.claim(data.name) && data.name.length < 15) {
       var oldName = name;
       userNames.free(oldName);
       socket.username = data.name;
@@ -190,6 +190,10 @@ socketIo.events = function (socket, io) {
     socket.emit('send:message', {
       user: 'CHANNEL: ',
       text: 'Click channel name at top to switch channel.'
+    });
+    socket.emit('send:message', {
+      user: 'CHANNEL: ',
+      text: 'Change your name with /nick new_name.'
     });
   });
 

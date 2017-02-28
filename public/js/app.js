@@ -357,20 +357,41 @@ var ChatApp = React.createClass({
 		socket.emit('help', user);
 	},
 
+	parseMessage: function parseMessage(message) {
+		var split = message.text.indexOf(' ');
+		console.log(split + 1);
+		console.log(message.text.length);
+		if (split === -1 || message.text.charAt(0) !== '/' || message.text.length <= split + 1) {
+			return { command: '', message: message };
+		} else {
+			return { command: message.text.substr(0, split), message: message.text.substr(split + 1) };
+		}
+	},
+
+	handleParsedMessage: function handleParsedMessage(parsedMessage) {
+		switch (parsedMessage.command) {
+			case '/nick':
+				this.handleChangeName(parsedMessage.message);
+			default:
+				var _state4 = this.state,
+				    messages = _state4.messages,
+				    user = _state4.user,
+				    channel = _state4.channel;
+
+				messages.push(parsedMessage.message);
+				this.setState({ messages: messages });
+				socket.emit('stop:typing', { name: user, channel: channel });
+				typing = false;
+				socket.emit('send:message', parsedMessage.message);
+				break;
+		}
+	},
 	handleMessageSubmit: function handleMessageSubmit(message) {
 		if (message.text === '/help') {
 			this.handleHelp();
 		} else {
-			var _state4 = this.state;
-			var messages = _state4.messages;
-			var user = _state4.user;
-			var channel = _state4.channel;
-
-			messages.push(message);
-			this.setState({ messages: messages });
-			socket.emit('stop:typing', { name: user, channel: channel });
-			typing = false;
-			socket.emit('send:message', message);
+			var parsedMessage = this.parseMessage(message);
+			this.handleParsedMessage(parsedMessage);
 		}
 	},
 
@@ -395,15 +416,24 @@ var ChatApp = React.createClass({
 		var _this2 = this;
 
 		var oldName = this.state.user;
+
 		socket.emit('change:name', { name: newName }, function (result) {
+			var messages = _this2.state.messages;
+
 			if (!result) {
 				return alert('There was an error changing your name');
-			}
-			var users = _this2.state.users;
+			} else {
+				messages.push({
+					user: '',
+					text: 'You are now known as ' + newName
+				});
+				_this2.setState({ messages: messages });
+				var users = _this2.state.users;
 
-			var index = users.indexOf(oldName);
-			users.splice(index, 1, newName);
-			_this2.setState({ users: users, user: newName, showChat: true });
+				var index = users.indexOf(oldName);
+				users.splice(index, 1, newName);
+				_this2.setState({ users: users, user: newName, showChat: true });
+			}
 		});
 	},
 

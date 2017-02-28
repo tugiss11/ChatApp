@@ -308,16 +308,38 @@ var ChatApp = React.createClass({
 		socket.emit('help', user);
 	},
 
+	parseMessage(message) {
+		var split = message.text.indexOf(' ');
+		console.log(split+1);
+		console.log(message.text.length);
+		if (split === -1 || message.text.charAt(0) !== '/'
+		|| message.text.length <= split+1)  {
+			return {command: '', message: message};
+		} else {
+			return {command: message.text.substr(0, split), message: message.text.substr(split+1)};
+		}
+	},
+	
+	handleParsedMessage(parsedMessage) {
+		switch (parsedMessage.command) {
+			case '/nick':
+				this.handleChangeName(parsedMessage.message);
+			default:
+				var {messages, user, channel} = this.state;
+				messages.push(parsedMessage.message);
+				this.setState({messages});
+				socket.emit('stop:typing', { name : user, channel : channel});
+				typing = false;
+				socket.emit('send:message', parsedMessage.message);
+				break;
+		}
+	},
 	handleMessageSubmit(message) {
 		if (message.text === '/help'){
 			this.handleHelp();
 		} else {
-			var {messages, user, channel} = this.state;
-			messages.push(message);
-			this.setState({messages});
-			socket.emit('stop:typing', { name : user, channel : channel});
-			typing = false;
-			socket.emit('send:message', message);
+			var parsedMessage = this.parseMessage(message);
+			this.handleParsedMessage(parsedMessage);
 		}
 	},
 
@@ -338,13 +360,20 @@ var ChatApp = React.createClass({
 	handleChangeName(newName) {
 		var oldName = this.state.user;
 		socket.emit('change:name', { name : newName}, (result) => {
+			var {messages} = this.state;
 			if(!result) {
 				return alert('There was an error changing your name');
+			} else {
+				messages.push({
+					user: '',
+					text: 'You are now known as '+ newName
+				});
+				this.setState({messages});
+				var {users} = this.state;
+				var index = users.indexOf(oldName);
+				users.splice(index, 1, newName);
+				this.setState({users, user: newName, showChat : true});
 			}
-			var {users} = this.state;
-			var index = users.indexOf(oldName);
-			users.splice(index, 1, newName);
-			this.setState({users, user: newName, showChat : true});
 		});
 	},
 	
