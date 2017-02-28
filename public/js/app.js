@@ -253,7 +253,7 @@ var ChatApp = React.createClass({
 
 		messages.push({
 			user: '',
-			text: 'You are now talking in ' + channel
+			text: 'You are now talking in ' + channel + '. Type /help for instructions'
 		});
 		this.setState({ users: users, user: name, channels: channels, channel: channel, messages: messages });
 		console.log(users);
@@ -351,17 +351,27 @@ var ChatApp = React.createClass({
 		this.setState({ users: users, messages: messages });
 	},
 
-	handleMessageSubmit: function handleMessageSubmit(message) {
-		var _state4 = this.state;
-		var messages = _state4.messages;
-		var user = _state4.user;
-		var channel = _state4.channel;
+	handleHelp: function handleHelp() {
+		var user = this.state.user;
 
-		messages.push(message);
-		this.setState({ messages: messages });
-		socket.emit('stop:typing', { name: user, channel: channel });
-		typing = false;
-		socket.emit('send:message', message);
+		socket.emit('help', user);
+	},
+
+	handleMessageSubmit: function handleMessageSubmit(message) {
+		if (message.text === '/help') {
+			this.handleHelp();
+		} else {
+			var _state4 = this.state;
+			var messages = _state4.messages;
+			var user = _state4.user;
+			var channel = _state4.channel;
+
+			messages.push(message);
+			this.setState({ messages: messages });
+			socket.emit('stop:typing', { name: user, channel: channel });
+			typing = false;
+			socket.emit('send:message', message);
+		}
 	},
 
 	onChannelClicked: function onChannelClicked(newChannel) {

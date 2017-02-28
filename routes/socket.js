@@ -75,6 +75,18 @@ function usersByChannel(io, channelName) {
   return users;
 };
 
+function getSocket(io,username) {
+    var sockets = io.sockets.connected;
+    for (var name in sockets) {
+      var clientSocket = io.sockets.connected[name]
+      if (clientSocket.username == username){
+        return clientSocket;
+      }
+    }
+  
+  return '';
+};
+
 var socketIo = module.exports = {};
 
 socketIo.events = function (socket, io) {
@@ -139,7 +151,7 @@ socketIo.events = function (socket, io) {
     socket.leave(oldRoom);
     socket.room = newRoom;
     socket.join(newRoom);
-    
+
     socket.broadcast.to(oldRoom).emit('update:users', {
       users: usersByChannel(io, oldRoom)
     });
@@ -147,14 +159,14 @@ socketIo.events = function (socket, io) {
     io.sockets.in(newRoom).emit('update:users', {
       users: usersByChannel(io, newRoom)
     });
-   
+
     socket.broadcast.to(newRoom).emit('send:message', {
       user: '',
       text: socket.username + ' has joined the channel'
     });
   });
 
-   socket.on('typing', function (data) {
+  socket.on('typing', function (data) {
     socket.broadcast.to(data.channel).emit('send:message', {
       user: data.name,
       text: ' is typing...'
@@ -165,6 +177,19 @@ socketIo.events = function (socket, io) {
     socket.broadcast.to(data.channel).emit('remove:message', {
       user: data.name,
       text: ' is typing...'
+    });
+  });
+
+  socket.on('help', function (username) {
+    console.log('help' + username);
+    var socket = getSocket(io, username);
+    socket.emit('send:message', {
+      user: 'CHANNEL: ',
+      text: 'Send messages to other users by typing to "Type here.." and pressing enter.'
+    });
+    socket.emit('send:message', {
+      user: 'CHANNEL: ',
+      text: 'Click channel name at top to switch channel.'
     });
   });
 
